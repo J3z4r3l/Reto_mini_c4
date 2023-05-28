@@ -1,0 +1,10 @@
+{
+    "python.autoComplete.extraPaths": [
+        "/home/jeza/catkin_ws_jeza/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/jeza/catkin_ws_jeza/devel/lib/python2.7/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
+}
