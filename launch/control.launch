@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<launch>
+
+    <rosparam file = "$(find mini_c4)/config/params.yaml" command = "load"  />
+    
+    <node name="controller" pkg="mini_c4" type="controller.py"/>
+    <node name="path_generator" pkg="mini_c4" type="path_generator.py" output="screen" />
+    <node name="imagen" pkg="mini_c4" type="imagen.py"/>
+</launch>
