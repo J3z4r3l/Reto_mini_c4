@@ -38,7 +38,7 @@ class Controller:
         rospy.Subscriber("/wl",Float32,self.wl_callback)
         rospy.Subscriber("/error",input_point,self.callback)
         rospy.Subscriber('/color',Float32, self.color_callback)   
-        rospy.Subscriber('/control_vel',imagen_data, self.img_vel_calback)   
+        rospy.Subscriber('/controller_img',imagen_data, self.img_vel_calback)   
         
         self.pose_pub = rospy.Publisher('/cmd_vel',Twist,queue_size=10)
         
@@ -69,7 +69,8 @@ class Controller:
         msg.angular.x = 0
         msg.angular.y = 0
         msg.angular.z = 0
-
+        num=0
+        
         while not rospy.is_shutdown():
             if self.first:
                 self.current_time = rospy.get_time() 
@@ -90,7 +91,6 @@ class Controller:
                 self.error_prev_ang = self.error_ang
                 self.controlador_va =self.kp_ang * self.error_ang + self.ki_ang * self.error_sum_ang + self.kd_ang * self.error_diff_ang
                 #Publicar las posiciones
-                num=0.0
                 if self.color==1:
                      msg.linear.x = 0
                      msg.angular.z = 0    
@@ -110,7 +110,7 @@ class Controller:
                         msg.linear.x = self.controlador_vl
                         msg.angular.z = self.controlador_va
                 #Esta linea parece no servir, la quitare?
-                if self.error_ang==0 and self.error_dist==0:
+                if self.error_ang==0 and self.error_dist==0 and num==1:
                     msg.linear.x = 0
                     msg.angular.z = 0
                 

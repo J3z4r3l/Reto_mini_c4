@@ -27,11 +27,11 @@ class procesamiento:
         self.error_a =0.0
         self.error_acumulado_a=0.0
         self.dt=0.0
-        self.kp_a = 1.0
-        self.kp_d = 0.05
-        self.ki_a = 0.02
-        self.ki_d = 0.02
-        self.kd_a = 0.003
+        self.kp_a = 0.01
+        self.kp_d = 0.01
+        self.ki_a = 0.00
+        self.ki_d = 0.00
+        self.kd_a = 0.000
         self.error_sum_d=0.0
         self.error_sum_a=0.0
         self.error_acumulado_a=0.0
@@ -165,29 +165,31 @@ class procesamiento:
             self.dt = (self.current_time - self.previous_time)
             self.previous_time = self.current_time
 
-            self.e = int(self.x_min - self.setpoint)
+            self.e = int(self.x_min - self.setpoint)/10
             self.error_d = int(self.ang - 0 + (self.e / 2.5))
             self.error_a = self.error_d
-	    #print(self.error_d)
-            if self.error_d > -4:
+            print(self.error_d)
+            if self.error_d > -400:
                 #self.error_d = 0
                 self.error_sum_a += self.error_a * self.dt
-                self.error_sum_d += self.error_d * self.dt
                 self.error_derivativo_a = (self.error_a - self.error_acumulado_a) / (self.dt + 0.00001)
                 self.accion_proporcional_a = self.kp_a * self.error_a
-                self.accion_proporcional_d = self.kp_d * self.error_d
                 self.accion_integral_a = self.ki_a * self.error_sum_a
-                self.accion_integral_d = self.ki_d * self.error_sum_d
                 self.accion_deribativa_a = self.kd_a * self.error_derivativo_a
                 self.control_a = self.accion_proporcional_a + self.accion_integral_a + self.accion_deribativa_a
-                self.control_d = self.accion_proporcional_d + self.accion_integral_d
-                self.t1 = int(20 - 25 * np.tanh(self.control_d / 10))
-                self.img_out.ang = self.control_a
-                self.img_out.dist = self.t1
+                self.control_d = 1
+                #self.t1 = int(20 - 25 * np.tanh(self.control_d / 10))
+                self.t1 = self.control_d
+                if self.control_a>2.1 or self.control_a<-2.1:
+                    self.img_out.ang = 2
+                    self.img_out.dist = self.control_d
+                else: 
+                    self.img_out.ang = self.control_a
+                    self.img_out.dist = self.control_d
                 # Esta linea manda las velocidades
                 self.control_vel.publish(self.img_out)
                 print_info = "%3f | %3f" % (self.error_a, self.error_d)
-                rospy.loginfo(print_info)
+                rospy.loginfo(self.img_out)
 
         detection = self.detect_traffic_light(self.image)
 
