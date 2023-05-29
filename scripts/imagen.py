@@ -69,12 +69,6 @@ class procesamiento:
     def image_callback(self,msg):
         self.image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
     #Creo no ocupo esta funcion 
-    def preprocesamiento(self,image):
-        rotar = cv2.rotate(image,cv2.ROTATE_180)
-        redimensionar = cv2.resize(rotar,(self.ancho, self.alto))
-        src_gray = cv2.cvtColor(redimensionar, cv2.COLOR_BGR2GRAY)
-        blurred = cv2.GaussianBlur(src_gray, (19, 19), 0)
-        return blurred
     def detect_traffic_light(self,image):
         rotar = cv2.rotate(image,cv2.ROTATE_180)
         redimensionar = cv2.resize(rotar,(self.ancho, self.alto))
@@ -115,7 +109,7 @@ class procesamiento:
         self.color_pub.publish(self.color_imagen)
         #rospy.loginfo(self.color_imagen)
         #cv2.imshow('Circulos detectados', frame)
-        cv2.waitKey(1)
+        #cv2.waitKey(1)
         return frame
 
     def seg_linea(self,image):
@@ -127,7 +121,7 @@ class procesamiento:
         cnts=sorted(cnts, key=cv2.contourArea,reverse=True)[:1]
         cv2.drawContours(image, cnts,0,(0,255,0),3)
         g,b,_=image.shape
-        setpoint = b/2
+        self.setpoint = b/2
         cv2.line(image, (int(b/2),50),(int(b/2),80),(255,0,0),3)
         
         
@@ -135,12 +129,16 @@ class procesamiento:
             x,y,w,h = cv2.boundingRect(cnts[0])
             blackbox = cv2.minAreaRect(cnts[0])
             (self.x_min,self.y_min), (self.w_min, self.h_min),ang = blackbox
-            if ang < -45:
-                ang = 90 + ang
-            if self.w_min < self.h_min and ang > 0:
-                 ang = (90-ang)*-1
-            if self.w_min > self.h_min and ang < 0:
-                 ang = 90 -ang
+            if self.ang < -45:
+                self.ang = 90 + ang
+            if self.w_min < self.h_min and self.ang > 0:
+                 self.ang = (90-ang)*-1
+            if self.w_min > self.h_min and self.ang < 0:
+                 self.ang = 90 -ang
+        
+
+
+
     
 
     def imag(self,image):
@@ -152,6 +150,8 @@ class procesamiento:
         self.seg_linea(roi)
         cv2.imshow("o2",roi)
         cv2.waitKey(1)
+        print('corre')
+        return roi
     def run(self):
         if self.image is None:
             return
@@ -168,8 +168,9 @@ class procesamiento:
             self.e = int(self.x_min - self.setpoint)
             self.error_d = int(self.ang - 0 + (self.e / 2.5))
             self.error_a = self.error_d
-            if self.error_d < 4 and self.error_d > -4:
-                self.error_d = 0
+	    #print(self.error_d)
+            if self.error_d > -4:
+                #self.error_d = 0
                 self.error_sum_a += self.error_a * self.dt
                 self.error_sum_d += self.error_d * self.dt
                 self.error_derivativo_a = (self.error_a - self.error_acumulado_a) / (self.dt + 0.00001)
@@ -183,9 +184,9 @@ class procesamiento:
                 self.t1 = int(20 - 25 * np.tanh(self.control_d / 10))
                 self.img_out.ang = self.control_a
                 self.img_out.dist = self.t1
-                # Esta línea manda las velocidades
+                # Esta linea manda las velocidades
                 self.control_vel.publish(self.img_out)
-                print_info = "%3f | %3f" % (self.error_d, self.error_a)
+                print_info = "%3f | %3f" % (self.error_a, self.error_d)
                 rospy.loginfo(print_info)
 
         detection = self.detect_traffic_light(self.image)
