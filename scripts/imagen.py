@@ -7,7 +7,7 @@ import rospy
 import cv_bridge
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32
-from mini_c4.msg import imagen_data
+from pssy_cat.msg import imagen_data
 
 class procesamiento:
     def __init__(self):
@@ -45,6 +45,10 @@ class procesamiento:
         self.control_d= 0.0
         self.t1=0.0
         self.ang=0.0
+        self.img_out= imagen_data()
+        self.img_out.ang=0
+        self.img_out.dist=0
+        self.first= True
 
 
 #finish
@@ -109,7 +113,7 @@ class procesamiento:
                 else:
                     pass
         self.color_pub.publish(self.color_imagen)
-        rospy.loginfo(self.color_imagen)
+        #rospy.loginfo(self.color_imagen)
         #cv2.imshow('Circulos detectados', frame)
         cv2.waitKey(1)
         return frame
@@ -148,51 +152,48 @@ class procesamiento:
         self.seg_linea(roi)
         cv2.imshow("o2",roi)
         cv2.waitKey(1)
-    def run2(self):
+    def run(self):
+        if self.image is None:
+            return
         if self.first:
-            self.current_time = rospy.get_time() 
+            self.current_time = rospy.get_time()
             self.previous_time = rospy.get_time()
             self.first = False
         else:
-            self.current_time = rospy.get_time() 
+            self.imag(self.image)
+            self.current_time = rospy.get_time()
             self.dt = (self.current_time - self.previous_time)
             self.previous_time = self.current_time
-        
-            self.e=int(self.x_min - self.setpoint)
-            self.error_d = int(self.ang - 0+(self.e/2.5))
-            self.error_a =self.error_d
-            if self.error_d<4 and self.error_d>-4:
-                    self.error_d=0
-                    self.error_sum_a += self.error_a * self.dt
-                    self.error_sum_d += self.error_d * self.dt
-                    self.error_derivativo_a= (self.error_a- self.error_acumulado_a) / (self.dt+0.00001)
-                    self.accion_proporcional_a = self.kp_a * self.error_a
-                    self.accion_proporcional_d = self.kp_d * self.error_d
-                    self.accion_integral_a = self.ki_a * self.error_sum_a
-                    self.accion_integral_d = self.ki_d * self.error_sum_d
-                    self.accion_deribativa_a =self.kd_a * self.error_derivativo_a
-                    self.control_a= self.accion_proporcional_a + self.accion_integral_a + self.accion_deribativa_a
-                    self.control_d= self.accion_proporcional_d + self.accion_integral_d
-                    self.t1=int(20-25*np.tanh(self.control_d/10))
-                    self.img_out.ang=self.control_a
-                    self.img_out.dist=self.t1
-                    #esta linea manda ls velocidades
-                    self.control_vel.publish(self.img_out)
-                    print_info = "%3f | %3f" %(self.error_d,self.error_a)
-                    rospy.loginfo(print_info)
 
+            self.e = int(self.x_min - self.setpoint)
+            self.error_d = int(self.ang - 0 + (self.e / 2.5))
+            self.error_a = self.error_d
+            if self.error_d < 4 and self.error_d > -4:
+                self.error_d = 0
+                self.error_sum_a += self.error_a * self.dt
+                self.error_sum_d += self.error_d * self.dt
+                self.error_derivativo_a = (self.error_a - self.error_acumulado_a) / (self.dt + 0.00001)
+                self.accion_proporcional_a = self.kp_a * self.error_a
+                self.accion_proporcional_d = self.kp_d * self.error_d
+                self.accion_integral_a = self.ki_a * self.error_sum_a
+                self.accion_integral_d = self.ki_d * self.error_sum_d
+                self.accion_deribativa_a = self.kd_a * self.error_derivativo_a
+                self.control_a = self.accion_proporcional_a + self.accion_integral_a + self.accion_deribativa_a
+                self.control_d = self.accion_proporcional_d + self.accion_integral_d
+                self.t1 = int(20 - 25 * np.tanh(self.control_d / 10))
+                self.img_out.ang = self.control_a
+                self.img_out.dist = self.t1
+                # Esta línea manda las velocidades
+                self.control_vel.publish(self.img_out)
+                print_info = "%3f | %3f" % (self.error_d, self.error_a)
+                rospy.loginfo(print_info)
 
-    def run(self):
-        if self.image is None:
-           return
         detection = self.detect_traffic_light(self.image)
-        self.run2()
 
         if detection is not None:
             detection_rgb = cv2.cvtColor(detection, cv2.COLOR_BGR2RGB)
-            #ros_img = self.bridge.cv2_to_imgmsg(detection)
             ros_img = self.bridge.cv2_to_imgmsg(detection_rgb)
-            #self.image_pub.publish(ros_img)
+            # self.image_pub.publish(ros_img)
    
 if __name__ == "__main__":
     image_proc = procesamiento()
