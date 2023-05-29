@@ -169,25 +169,31 @@ class procesamiento:
             self.error_d = int(self.ang - 0 + (self.e / 2.5))
             self.error_a = self.error_d
             print(self.error_d)
-            if self.error_d > -400:
-                #self.error_d = 0
+            if self.error_a > 4 and self.error_a<-4:
                 self.error_sum_a += self.error_a * self.dt
                 self.error_derivativo_a = (self.error_a - self.error_acumulado_a) / (self.dt + 0.00001)
-                self.accion_proporcional_a = self.kp_a * self.error_a
-                self.accion_integral_a = self.ki_a * self.error_sum_a
-                self.accion_deribativa_a = self.kd_a * self.error_derivativo_a
-                self.control_a = self.accion_proporcional_a + self.accion_integral_a + self.accion_deribativa_a
-                self.control_d = 1
+                self.control_a = self.kp_a * self.error_a + self.ki_a * self.error_sum_a + self.kd_a * self.error_derivativo_a
+                
+                self.control_d = 0.2                
                 #self.t1 = int(20 - 25 * np.tanh(self.control_d / 10))
                 self.t1 = self.control_d
-                if self.control_a>2.1 or self.control_a<-2.1:
-                    self.img_out.ang = 2
+                if self.control_a>0.1 :
+                    self.img_out.ang = 0.05
                     self.img_out.dist = self.control_d
+                    self.control_vel.publish(self.img_out)
+                
+                elif self.control_a<-0.1:
+                    self.img_out.ang = 0.05
+                    self.img_out.dist = self.control_d
+                    self.control_vel.publish(self.img_out)
+                
+            
                 else: 
                     self.img_out.ang = self.control_a
                     self.img_out.dist = self.control_d
+                    self.control_vel.publish(self.img_out)
+                
                 # Esta linea manda las velocidades
-                self.control_vel.publish(self.img_out)
                 print_info = "%3f | %3f" % (self.error_a, self.error_d)
                 rospy.loginfo(self.img_out)
 

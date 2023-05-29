@@ -38,7 +38,7 @@ class Controller:
         rospy.Subscriber("/wl",Float32,self.wl_callback)
         rospy.Subscriber("/error",input_point,self.callback)
         rospy.Subscriber('/color',Float32, self.color_callback)   
-        rospy.Subscriber('/controller_img',imagen_data, self.img_vel_calback)   
+        rospy.Subscriber('/control_vel',imagen_data, self.img_vel_calback)   
         
         self.pose_pub = rospy.Publisher('/cmd_vel',Twist,queue_size=10)
         
@@ -70,7 +70,7 @@ class Controller:
         msg.angular.y = 0
         msg.angular.z = 0
         num=0
-        
+
         while not rospy.is_shutdown():
             if self.first:
                 self.current_time = rospy.get_time() 
