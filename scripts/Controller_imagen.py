@@ -19,7 +19,7 @@ class procesamiento:
         self.roi_upper = 0.60
         self.roi_lower = 0.99
         self.frameWidth = 640
-        self.frameHeight = 480
+        self.frameHeight = 320
         self.setpoint=0.0
         #Variables para el error
         self.x_min=0.0
@@ -51,6 +51,7 @@ class procesamiento:
         self.img_out= imagen_data()
         self.img_out.ang=0
         self.img_out.dist=0
+        self.first= True
 
 
 	#Definir suscriptores y publicadores
@@ -65,6 +66,7 @@ class procesamiento:
     
     def seg_linea(self,image):
         gray= cv2.cvtColor(image,cv2.COLOR_BGR2GRAY)
+
         #th=cv2.inRange(ROI,(0,0,0,),(50,50,50))
         retval, th= cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
         cnts, _= cv2.findContours(th, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -86,8 +88,9 @@ class procesamiento:
             if self.w_min > self.h_min and ang < 0:
                  ang = 90 -ang
     
-    def imag(self):
-        image2 = cv2.resize(self.image,(self.frameWidth, self.frameHeight))
+    def imag(self,image):
+        rotar = cv2.rotate(image,cv2.ROTATE_180)
+        image2 = cv2.resize(rotar,(self.ancho, self.alto))
         roi_size = [int(self.roi_upper*self.frameHeight),int(self.roi_lower*self.frameHeight),0,self.frameWidth - 1]
         lineThresh = 0.1
         roi = image2[roi_size[0]:roi_size[1],roi_size[2]:roi_size[3]]
