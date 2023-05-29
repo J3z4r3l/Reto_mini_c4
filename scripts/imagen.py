@@ -24,9 +24,10 @@ class procesamiento:
 
         self.image_pub = rospy.Publisher('/procesada',Image, queue_size=10)
         self.color_pub = rospy.Publisher('/color',Float32, queue_size=10)
+    
     def image_callback(self,msg):
         self.image = self.bridge.imgmsg_to_cv2(msg,desired_encoding='bgr8')
-
+    #Creo no ocupo esta funcion 
     def preprocesamiento(self,image):
         rotar = cv2.rotate(image,cv2.ROTATE_180)
         redimensionar = cv2.resize(rotar,(self.ancho, self.alto))
