@@ -125,7 +125,9 @@ class procesamiento:
                     self.img_out.dist=self.t1
                     #esta linea manda ls velocidades
                     self.control_vel.publish(self.img_out)
-                    rospy.loginfo(self.img_out)
+                    print_info = "%3f | %3f" %(self.error_d,self.error_a)
+                    rospy.loginfo(print_info)
+
 if __name__ == "__main__":
     image_proc = procesamiento()
     while not rospy.is_shutdown():
