@@ -4,7 +4,9 @@ from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist
 import numpy as np
 from mini_c4.msg import input_point
- 
+from mini_c4.msg import imagen_data
+
+
 class Controller:
     def __init__(self):
         # Configurar parametros del controlador
@@ -27,7 +29,8 @@ class Controller:
         self.first=True
         self.controlador_vl=0.0
         self.controlador_va=0.0  
-        self.color=0.0      
+        self.color=0.0  
+        self.output_img=0.0    
 
         #Inicializar nodos
         rospy.init_node("controller")
@@ -35,11 +38,16 @@ class Controller:
         rospy.Subscriber("/wl",Float32,self.wl_callback)
         rospy.Subscriber("/error",input_point,self.callback)
         rospy.Subscriber('/color',Float32, self.color_callback)   
+        rospy.Subscriber('/controller_img',imagen_data, self.img_vel_calback)   
+        
         self.pose_pub = rospy.Publisher('/cmd_vel',Twist,queue_size=10)
         
         self.rate = rospy.Rate(10)
 
     # Callbacks para velocidades de las ruedas
+    def img_vel_calback(self,msg): 
+        self.output_img=msg
+
     def color_callback(self, msg):
         self.color= msg.data
 
@@ -82,19 +90,31 @@ class Controller:
                 self.error_prev_ang = self.error_ang
                 self.controlador_va =self.kp_ang * self.error_ang + self.ki_ang * self.error_sum_ang + self.kd_ang * self.error_diff_ang
                 #Publicar las posiciones
+                num=0.0
                 if self.color==1:
                      msg.linear.x = 0
                      msg.angular.z = 0    
                 elif self.color==2:
-                    msg.linear.x = self.controlador_vl/2
-                    msg.angular.z = self.controlador_va/2
+                    if num==0:
+                        msg.linear.x=self.output_img.dist/2
+                        msg.angular.z = self.output_img.ang/2
+                    #implementacion futura
+                    if num==1:
+                        msg.linear.x = self.controlador_vl/2
+                        msg.angular.z = self.controlador_va/2
                 elif self.color==3:
-                    msg.linear.x = self.controlador_vl
-                    msg.angular.z = self.controlador_va
+                    if num==0:
+                        msg.linear.x=self.output_img.dist
+                        msg.angular.z = self.output_img.ang
+                    if num==1:
+                        msg.linear.x = self.controlador_vl
+                        msg.angular.z = self.controlador_va
                 #Esta linea parece no servir, la quitare?
                 if self.error_ang==0 and self.error_dist==0:
                     msg.linear.x = 0
                     msg.angular.z = 0
+                
+
                 print("Controlador_on")
                 print_info = "%3f | %3f" %(self.color,msg.linear.x)
                 rospy.loginfo(print_info)
