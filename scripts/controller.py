@@ -38,7 +38,7 @@ class Controller:
         rospy.Subscriber("/wl",Float32,self.wl_callback)
         rospy.Subscriber("/error",input_point,self.callback)
         rospy.Subscriber('/color',Float32, self.color_callback)   
-        rospy.Subscriber('/controller_img',imagen_data, self.img_vel_calback)   
+        rospy.Subscriber('/control_vel',imagen_data, self.img_vel_calback)   
         
         self.pose_pub = rospy.Publisher('/cmd_vel',Twist,queue_size=10)
         

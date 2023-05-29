@@ -5,5 +5,6 @@
     
     <node name="controller" pkg="mini_c4" type="controller.py"/>
     <node name="path_generator" pkg="mini_c4" type="path_generator.py" output="screen" />
+    <node name="controller_img" pkg="mini_c4" type="Controller_imagen.py"/>
     <node name="imagen" pkg="mini_c4" type="imagen.py"/>
 </launch>
