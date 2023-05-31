@@ -10,7 +10,7 @@ from pssy_cat.msg import imagen_data
 
 class ImageControl:
     def __init__(self):
-        # Parámetros para la imagen
+        # Parametros para la imagen
         self.width = 640
         self.height = 320
         self.roi_upper = 0.60
@@ -20,8 +20,8 @@ class ImageControl:
         self.current_time = 0 
         self.previous_time = 0
         self.first = False
-            
-        # Enviamos las velocidades a través de imagen_data.msg
+        self.contours=0
+        # Enviamos las velocidades a traves de imagen_data.msg
         self.img_out = imagen_data()
         self.img_out.ang = 0
         self.img_out.dist = 0
@@ -34,7 +34,7 @@ class ImageControl:
         self.error_sum_d = 0.0
         self.prev_error_d=0
         self.prev_error_a=0
-        # Parámetros del controlador PID
+        # Parametros del controlador PID
         self.kp_a = 0.01
         self.ki_a = 0.00
         self.kd_a = 0.000
@@ -70,13 +70,13 @@ class ImageControl:
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         thresholded = cv2.inRange(roi, (0, 0, 0), (50, 50, 50))
         edges = cv2.Canny(thresholded, 250, 255)
-        _, contours, _ = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)[:1]
+        _, self.contours, _ = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        self.contours = sorted(self.contours, key=cv2.contourArea, reverse=True)[:1]
 
         x_min = 0
-        if len(contours) > 0:
-            x, y, w, h = cv2.boundingRect(contours[0])
-            blackbox = cv2.minAreaRect(contours[0])
+        if len(self.contours) > 0:
+            x, y, w, h = cv2.boundingRect(self.contours[0])
+            blackbox = cv2.minAreaRect(self.contours[0])
             (x_min, y_min), (w_min, h_min), ang = blackbox
 
         h, w, _ = roi.shape
@@ -148,8 +148,7 @@ class ImageControl:
             self.img_out.dist = self.control_d
             self.control_vel_pub.publish(self.img_out)
 
-            # Resto del código existente
-            cv2.drawContours(roi, self.cnts, 0, (0, 255, 0), 3)
+            cv2.drawContours(roi, self.contours, 0, (0, 255, 0), 3)
             h, w, _ = roi.shape
             cv2.line(roi, (int(w / 2), 250), (int(w / 2), 280), (255, 0, 0), 3)
             key = cv2.waitKey(1) & 0xFF
