@@ -12,8 +12,6 @@ class ImageControl:
         # Parametros para la imagen
         self.width = 640
         self.height = 320
-        self.roi_upper = 0.60
-        self.roi_lower = 0.99
         self.image = None
         self.bridge = cv_bridge.CvBridge()
         self.current_time = 0 
@@ -84,6 +82,13 @@ class ImageControl:
         error_d = float(x_min - self.setpoint)/10
         if -8 < error_d < 8:
             error_d = 0
+        
+        elif error_d<-8:
+            error_d=error_d+8
+
+        elif error_d>8:
+            error_d=error_d-8
+
 
         return error_a, error_d
     # Ajustar la linea y calcular el error 
@@ -95,7 +100,7 @@ class ImageControl:
     def create_roi(self,frame):
         rotated = cv2.rotate(frame, cv2.ROTATE_180)
         resized = cv2.resize(rotated, (self.width, self.height))
-        roi_upper=0.75
+        roi_upper=0.60
         roi_lower= 0.99
         frame_width=640
         frame_height = frame.shape[0]
@@ -118,17 +123,17 @@ class ImageControl:
         self.previous_time = self.current_time
 
         # Termino proporcional (P)
-        control_a_p = self.kp_a * self.error_a
+        control_a_p = self.kp_a * self.error_d
         control_d_p = self.kp_d * self.error_d
 
         # Termino integral (I)
-        self.error_sum_a += self.error_a * dt
+        self.error_sum_a += self.error_d * dt
         self.error_sum_d += self.error_d * dt
-        control_a_i = self.ki_a * self.error_sum_a
+        control_a_i = self.ki_d * self.error_sum_d
         control_d_i = self.ki_d * self.error_sum_d
 
         # Termino derivativo (D)
-        error_derivativo_a = (self.error_a - self.prev_error_a) / dt
+        error_derivativo_a = (self.error_d - self.prev_error_d) / dt
         control_a_d = self.kd_a * error_derivativo_a
 
         # Calculo del control total
@@ -141,7 +146,7 @@ class ImageControl:
 
         # Envio de las velocidades al publicador correspondiente
         self.img_out.ang = self.control_a
-        self.img_out.dist = 0.1#self.control_d
+        self.img_out.dist = 0.05#self.control_d
         self.control_vel_pub.publish(self.img_out)
 
         #va lo de las imagenes...

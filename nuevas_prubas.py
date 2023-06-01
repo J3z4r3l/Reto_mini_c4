@@ -9,6 +9,7 @@ class ObjectTracker:
     def calculate_error(self, roi):
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         th = cv2.inRange(roi, (0, 0, 0), (50, 50, 50))
+        retval, th= cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
         bordes = cv2.Canny(th, 250, 255)
         _, self.cnts, _ = cv2.findContours(th, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         self.cnts = sorted(self.cnts, key=cv2.contourArea, reverse=True)[:1]
@@ -52,7 +53,7 @@ class ObjectTracker:
         roi_size = [int(roi_upper * frame_height), int(roi_lower * frame_height), 0, frame_width - 1]
         print(roi_size)
         roi = frame[roi_size[0]:roi_size[1], roi_size[2]:roi_size[3]]
-        cv2.imshow("ROI", roi)
+        #cv2.imshow("ROI", roi)
         return roi
 
     def run(self):
