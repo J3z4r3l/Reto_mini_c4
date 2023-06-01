@@ -108,7 +108,7 @@ class ImageControl:
         roi_size = [int(roi_upper * frame_height), int(roi_lower * frame_height), 0, frame_width - 1]
         print(roi_size)
         roi = resized[roi_size[0]:roi_size[1], roi_size[2]:roi_size[3]]
-        cv2.imshow("ROI", roi)
+        #cv2.imshow("ROI", roi)
         return roi
 
     # Procesar el frame
@@ -146,7 +146,7 @@ class ImageControl:
 
         # Envio de las velocidades al publicador correspondiente
         self.img_out.ang = self.control_a
-        self.img_out.dist = 0.05#self.control_d
+        self.img_out.dist = 0.025#self.control_d
         self.control_vel_pub.publish(self.img_out)
 
         #va lo de las imagenes...
@@ -157,7 +157,7 @@ class ImageControl:
         cv2.imshow("o", roi)
 
         key = cv2.waitKey(1) & 0xFF
-        print_info = "%3f | %3f" % (self.error_a, self.error_d)
+        print_info = "%3f | %3f| %3f" % (self.error_a, self.error_d,self.control_a)
         rospy.loginfo(print_info)
 
         return key
