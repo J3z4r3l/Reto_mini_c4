@@ -73,6 +73,11 @@ class ImageControl:
         bordes = cv2.Canny(th, 250, 255)
         _, self.cnts, _ = cv2.findContours(th, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         self.cnts = sorted(self.cnts, key=cv2.contourArea, reverse=True)[:1]
+        cv2.drawContours(roi, self.cnts, 0, (0, 255, 0), 3)
+        h, w, _ = roi.shape
+        cv2.line(roi, (int(w / 2), 150), (int(w / 2), 80), (255, 0, 0), 3)
+        cv2.imshow("o", roi)
+
 
         x_min = 0
         if len(self.cnts) > 0:
@@ -80,8 +85,7 @@ class ImageControl:
             blackbox = cv2.minAreaRect(self.cnts[0])
             (x_min, y_min), (w_min, h_min), ang = blackbox
 
-        h, w, _ = roi.shape
-
+        
         if self.setpoint is None:
             self.setpoint = w / 2
 
@@ -156,12 +160,6 @@ class ImageControl:
         self.control_vel_pub.publish(self.img_out)
 
         #va lo de las imagenes...
-        cv2.drawContours(roi, self.cnts, 0, (0, 255, 0), 3)
-        h, w, _ = roi.shape
-        cv2.line(roi, (int(w / 2), 150), (int(w / 2), 80), (255, 0, 0), 3)
-        key = cv2.waitKey(1) & 0xFF
-        cv2.imshow("o", roi)
-
         key = cv2.waitKey(1) & 0xFF
         print_info = "%3f | %3f" % (self.error_a, self.error_d)
         rospy.loginfo(print_info)
