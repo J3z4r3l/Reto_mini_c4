@@ -53,9 +53,9 @@ class ImageControl:
     # Calcular el error
     def calculate_error(self, roi):
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        th = cv2.inRange(roi, (250, 250, 250), (250, 250, 250))
-        retval, th= cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
-        bordes = cv2.Canny(th, 255, 255)
+        th = cv2.inRange(roi, (250, 250, 250), (255, 255, 255))
+        retval, th= cv2.threshold(gray, 200, 255, cv2.THRESH_BINARY_INV)
+        bordes = cv2.Canny(th, 200, 255)
         self.cnts, _ = cv2.findContours(th, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         self.cnts = sorted(self.cnts, key=cv2.contourArea, reverse=True)[:1]
         w=0.0
