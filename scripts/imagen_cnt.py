@@ -108,42 +108,55 @@ class ImageControl:
         return error_a
     
     # Procesar el frame
+    # Procesar el frame
     def process_frame(self, roi):
-        
         self.calculate_error(roi)
+        
         # Calculo de los errores
-        self.current_time = rospy.get_time() 
+        self.current_time = rospy.get_time()
         dt = (self.current_time - self.previous_time)
         self.previous_time = self.current_time
             
         # Termino proporcional (P)
         control_a_p = self.kp_a * self.error_a
         control_d_p = self.kp_d * self.error_d
+        
         # Termino integral (I)
         self.error_sum_a += self.error_a * dt
         self.error_sum_d += self.error_d * dt
         control_a_i = self.ki_a * self.error_sum_a
         control_d_i = self.ki_d * self.error_sum_d
+        
         # Termino derivativo (D)
         error_derivativo_a = (self.error_a - self.prev_error_a) / dt
         control_a_d = self.kd_a * error_derivativo_a
+        
         # Calculo del control total
         self.control_a = control_a_p + control_a_i + control_a_d
         self.control_d = control_d_p + control_d_i
+        
         # Actualizar variables para la siguiente iteracion
         self.prev_error_a = self.error_a
         self.prev_error_d = self.error_d
+        
         # Envio de las velocidades al publicador correspondiente
         self.img_out.ang = self.control_a
         self.img_out.dist = self.control_d
         self.control_vel_pub.publish(self.img_out)
-        cv2.drawContours(roi, self.contours, 0, (0, 255, 0), 3)
-        h, w, _ = roi.shape
-        cv2.line(roi, (int(w / 2), 250), (int(w / 2), 280), (255, 0, 0), 3)
+        
+        # Dibujar contornos y línea en la región de interés
+        roi_with_contours = roi.copy()
+        cv2.drawContours(roi_with_contours, self.contours, 0, (0, 255, 0), 3)
+        h, w, _ = roi_with_contours.shape
+        cv2.line(roi_with_contours, (int(w / 2), 250), (int(w / 2), 280), (255, 0, 0), 3)
+        
+        # Mostrar la imagen resultante en la región de interés
+        cv2.imshow("ROI with Contours", roi_with_contours)
+        
         key = cv2.waitKey(1) & 0xFF
         print_info = "%3f | %3f" % (self.error_a, self.error_d)
         rospy.loginfo(print_info)
-        cv2.imshow("o", roi)
+        
         return key
 
     def run(self):
