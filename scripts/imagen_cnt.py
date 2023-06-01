@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import cv2
 import numpy as np
 import rospy
@@ -50,42 +49,25 @@ class ImageControl:
     # Mandamos a llamar a la imagen
     def image_callback(self, msg):
         self.image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-    
-    # Procesamos la imagen 
-    def process_image(self, image):
-        rotated = cv2.rotate(image, cv2.ROTATE_180)
-        resized = cv2.resize(rotated, (self.width, self.height))
-        roi_size = [int(self.roi_upper * self.height), int(self.roi_lower * self.height), 0, self.width - 1]
-        roi = resized[roi_size[0]:roi_size[1], roi_size[2]:roi_size[3]]
-        
-        self.calculate_error(roi)
-        
-        cv2.imshow("o2", roi)
-        cv2.waitKey(1)
-        
-        return roi
-    
+     
     # Calcular el error
     def calculate_error(self, roi):
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        th = cv2.inRange(roi, (0, 0, 0), (50, 50, 50))
+        th = cv2.inRange(roi, (250, 250, 250), (250, 250, 250))
         retval, th= cv2.threshold(gray, 80, 255, cv2.THRESH_BINARY_INV)
-        bordes = cv2.Canny(th, 250, 255)
-        _, self.cnts, _ = cv2.findContours(th, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        bordes = cv2.Canny(th, 255, 255)
+        self.cnts, _ = cv2.findContours(th, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         self.cnts = sorted(self.cnts, key=cv2.contourArea, reverse=True)[:1]
-        cv2.drawContours(roi, self.cnts, 0, (0, 255, 0), 3)
-        h, w, _ = roi.shape
-        cv2.line(roi, (int(w / 2), 150), (int(w / 2), 80), (255, 0, 0), 3)
-        cv2.imshow("o", roi)
+        w=0.0
+        x_min = 0.0
 
-
-        x_min = 0
         if len(self.cnts) > 0:
             x, y, w, h = cv2.boundingRect(self.cnts[0])
             blackbox = cv2.minAreaRect(self.cnts[0])
-            (x_min, y_min), (w_min, h_min), ang = blackbox
+            (x_min, y_min), (w_min,h_min), ang = blackbox
 
-        
+        h, w, _ = roi.shape
+
         if self.setpoint is None:
             self.setpoint = w / 2
 
@@ -96,10 +78,10 @@ class ImageControl:
 
         if lines is not None:
             angles = [(theta * 180 / np.pi) - 90 for line in lines for rho, theta in line]
-            error_a = (self.fit_line_and_calculate_error(angles)-89)/10
+            error_a = (self.fit_line_and_calculate_error(angles)-0)
 
 
-        error_d = Float32(x_min - self.setpoint)/10
+        error_d = float(x_min - self.setpoint)/10
         if -8 < error_d < 8:
             error_d = 0
 
@@ -111,13 +93,16 @@ class ImageControl:
 
         return error_a
     def create_roi(self,frame):
+        rotated = cv2.rotate(frame, cv2.ROTATE_180)
+        resized = cv2.resize(rotated, (self.width, self.height))
         roi_upper=0.75
         roi_lower= 0.99
         frame_width=640
         frame_height = frame.shape[0]
+
         roi_size = [int(roi_upper * frame_height), int(roi_lower * frame_height), 0, frame_width - 1]
         print(roi_size)
-        roi = frame[roi_size[0]:roi_size[1], roi_size[2]:roi_size[3]]
+        roi = resized[roi_size[0]:roi_size[1], roi_size[2]:roi_size[3]]
         cv2.imshow("ROI", roi)
         return roi
 
@@ -156,10 +141,16 @@ class ImageControl:
 
         # Envio de las velocidades al publicador correspondiente
         self.img_out.ang = self.control_a
-        self.img_out.dist = self.control_d
+        self.img_out.dist = 0.1#self.control_d
         self.control_vel_pub.publish(self.img_out)
 
         #va lo de las imagenes...
+        cv2.drawContours(roi1, self.cnts, 0, (0, 255, 0), 3)
+        h, w, _ = roi1.shape
+        cv2.line(roi, (int(w / 2), 150), (int(w / 2), 80), (255, 0, 0), 3)
+        key = cv2.waitKey(1) & 0xFF
+        cv2.imshow("o", roi)
+
         key = cv2.waitKey(1) & 0xFF
         print_info = "%3f | %3f" % (self.error_a, self.error_d)
         rospy.loginfo(print_info)
@@ -169,8 +160,8 @@ class ImageControl:
     def run(self):
         while not rospy.is_shutdown():
             if self.image is not None:
-                roi = self.process_image(self.image)
-                key = self.process_frame(roi)
+                #roi = self.process_image(self.image)
+                key = self.process_frame(self.image)
 
                 if key == ord("q"):
                     break
