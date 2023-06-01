@@ -68,15 +68,15 @@ class ImageControl:
     # Calcular el error
     def calculate_error(self, roi):
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-        thresholded = cv2.inRange(roi, (0, 0, 0), (50, 50, 50))
-        edges = cv2.Canny(thresholded, 250, 255)
-        self.contours, _ = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        self.contours = sorted(self.contours, key=cv2.contourArea, reverse=True)[:1]
+        th = cv2.inRange(roi, (0, 0, 0), (50, 50, 50))
+        bordes = cv2.Canny(th, 250, 255)
+        _, self.cnts, _ = cv2.findContours(th, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        self.cnts = sorted(self.cnts, key=cv2.contourArea, reverse=True)[:1]
 
         x_min = 0
-        if len(self.contours) > 0:
-            x, y, w, h = cv2.boundingRect(self.contours[0])
-            blackbox = cv2.minAreaRect(self.contours[0])
+        if len(self.cnts) > 0:
+            x, y, w, h = cv2.boundingRect(self.cnts[0])
+            blackbox = cv2.minAreaRect(self.cnts[0])
             (x_min, y_min), (w_min, h_min), ang = blackbox
 
         h, w, _ = roi.shape
@@ -84,79 +84,87 @@ class ImageControl:
         if self.setpoint is None:
             self.setpoint = w / 2
 
-        lines = cv2.HoughLines(edges, 1, np.pi / 180, 200)
+        lines = cv2.HoughLines(bordes, 1, np.pi / 180, 200)
 
         error_a = 0
         error_d = 0
 
         if lines is not None:
             angles = [(theta * 180 / np.pi) - 90 for line in lines for rho, theta in line]
-            error_a = self.fit_line_and_calculate_error(angles)
+            error_a = (self.fit_line_and_calculate_error(angles)-89)/10
 
-        error_d = int(x_min - self.setpoint)
+
+        error_d = Float32(x_min - self.setpoint)/10
         if -8 < error_d < 8:
             error_d = 0
 
-        self.error_a = error_a
-        self.error_d = error_d
-
+        return error_a, error_d
     # Ajustar la linea y calcular el error 
     def fit_line_and_calculate_error(self, angles):
         histogram, _ = np.histogram(angles, bins=180, range=(-90, 90))
         error_a = histogram.argmax() - 90
 
         return error_a
-    
+    def create_roi(self,frame):
+        roi_upper=0.75
+        roi_lower= 0.99
+        frame_width=640
+        frame_height = frame.shape[0]
+        roi_size = [int(roi_upper * frame_height), int(roi_lower * frame_height), 0, frame_width - 1]
+        print(roi_size)
+        roi = frame[roi_size[0]:roi_size[1], roi_size[2]:roi_size[3]]
+        cv2.imshow("ROI", roi)
+        return roi
+
     # Procesar el frame
     # Procesar el frame
     def process_frame(self, roi):
-        self.calculate_error(roi)
-        
+        roi1=self.create_roi(roi)
+        self.error_a, self.error_d = self.calculate_error(roi1)
+
         # Calculo de los errores
         self.current_time = rospy.get_time()
         dt = (self.current_time - self.previous_time)
         self.previous_time = self.current_time
-            
+
         # Termino proporcional (P)
         control_a_p = self.kp_a * self.error_a
         control_d_p = self.kp_d * self.error_d
-        
+
         # Termino integral (I)
         self.error_sum_a += self.error_a * dt
         self.error_sum_d += self.error_d * dt
         control_a_i = self.ki_a * self.error_sum_a
         control_d_i = self.ki_d * self.error_sum_d
-        
+
         # Termino derivativo (D)
         error_derivativo_a = (self.error_a - self.prev_error_a) / dt
         control_a_d = self.kd_a * error_derivativo_a
-        
+
         # Calculo del control total
         self.control_a = control_a_p + control_a_i + control_a_d
         self.control_d = control_d_p + control_d_i
-        
+
         # Actualizar variables para la siguiente iteracion
         self.prev_error_a = self.error_a
         self.prev_error_d = self.error_d
-        
+
         # Envio de las velocidades al publicador correspondiente
         self.img_out.ang = self.control_a
         self.img_out.dist = self.control_d
         self.control_vel_pub.publish(self.img_out)
-        
-        # Dibujar contornos y línea en la región de interés
-        roi_with_contours = roi.copy()
-        cv2.drawContours(roi_with_contours, self.contours, 0, (0, 255, 0), 3)
-        h, w, _ = roi_with_contours.shape
-        cv2.line(roi_with_contours, (int(w / 2), 250), (int(w / 2), 280), (255, 0, 0), 3)
-        
-        # Mostrar la imagen resultante en la región de interés
-        cv2.imshow("ROI with Contours", roi_with_contours)
-        
+
+        #va lo de las imagenes...
+        cv2.drawContours(roi, self.cnts, 0, (0, 255, 0), 3)
+        h, w, _ = roi.shape
+        cv2.line(roi, (int(w / 2), 150), (int(w / 2), 80), (255, 0, 0), 3)
+        key = cv2.waitKey(1) & 0xFF
+        cv2.imshow("o", roi)
+
         key = cv2.waitKey(1) & 0xFF
         print_info = "%3f | %3f" % (self.error_a, self.error_d)
         rospy.loginfo(print_info)
-        
+
         return key
 
     def run(self):
