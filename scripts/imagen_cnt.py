@@ -70,7 +70,7 @@ class ImageControl:
         gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
         thresholded = cv2.inRange(roi, (0, 0, 0), (50, 50, 50))
         edges = cv2.Canny(thresholded, 250, 255)
-        _, self.contours, _ = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        self.contours, _ = cv2.findContours(thresholded, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         self.contours = sorted(self.contours, key=cv2.contourArea, reverse=True)[:1]
 
         x_min = 0
@@ -100,7 +100,7 @@ class ImageControl:
         self.error_a = error_a
         self.error_d = error_d
 
-    # Ajustar la línea y calcular el error 
+    # Ajustar la linea y calcular el error 
     def fit_line_and_calculate_error(self, angles):
         histogram, _ = np.histogram(angles, bins=180, range=(-90, 90))
         error_a = histogram.argmax() - 90
@@ -109,54 +109,42 @@ class ImageControl:
     
     # Procesar el frame
     def process_frame(self, roi):
-        if self.first:
-                self.current_time = rospy.get_time() 
-                self.previous_time = rospy.get_time()
-                self.first = False
-        else:
-
-            self.calculate_error(roi)
-            # Calculo de los errores
-            self.current_time = rospy.get_time() 
-            dt = (self.current_time - self.previous_time)
-            self.previous_time = self.current_time
-                
-            # Termino proporcional (P)
-            control_a_p = self.kp_a * self.error_a
-            control_d_p = self.kp_d * self.error_d
-
-            # Termino integral (I)
-            self.error_sum_a += self.error_a * dt
-            self.error_sum_d += self.error_d * dt
-            control_a_i = self.ki_a * self.error_sum_a
-            control_d_i = self.ki_d * self.error_sum_d
-
-            # Termino derivativo (D)
-            error_derivativo_a = (self.error_a - self.prev_error_a) / dt
-            control_a_d = self.kd_a * error_derivativo_a
-
-            # Calculo del control total
-            self.control_a = control_a_p + control_a_i + control_a_d
-            self.control_d = control_d_p + control_d_i
-
-            # Actualizar variables para la siguiente iteracion
-            self.prev_error_a = self.error_a
-            self.prev_error_d = self.error_d
-
-            # Envío de las velocidades al publicador correspondiente
-            self.img_out.ang = self.control_a
-            self.img_out.dist = self.control_d
-            self.control_vel_pub.publish(self.img_out)
-
-            cv2.drawContours(roi, self.contours, 0, (0, 255, 0), 3)
-            h, w, _ = roi.shape
-            cv2.line(roi, (int(w / 2), 250), (int(w / 2), 280), (255, 0, 0), 3)
-            key = cv2.waitKey(1) & 0xFF
-            print_info = "%3f | %3f" % (self.error_a, self.error_d)
-            rospy.loginfo(print_info)
-            cv2.imshow("o", roi)
-
-            return key
+        
+        self.calculate_error(roi)
+        # Calculo de los errores
+        self.current_time = rospy.get_time() 
+        dt = (self.current_time - self.previous_time)
+        self.previous_time = self.current_time
+            
+        # Termino proporcional (P)
+        control_a_p = self.kp_a * self.error_a
+        control_d_p = self.kp_d * self.error_d
+        # Termino integral (I)
+        self.error_sum_a += self.error_a * dt
+        self.error_sum_d += self.error_d * dt
+        control_a_i = self.ki_a * self.error_sum_a
+        control_d_i = self.ki_d * self.error_sum_d
+        # Termino derivativo (D)
+        error_derivativo_a = (self.error_a - self.prev_error_a) / dt
+        control_a_d = self.kd_a * error_derivativo_a
+        # Calculo del control total
+        self.control_a = control_a_p + control_a_i + control_a_d
+        self.control_d = control_d_p + control_d_i
+        # Actualizar variables para la siguiente iteracion
+        self.prev_error_a = self.error_a
+        self.prev_error_d = self.error_d
+        # Envio de las velocidades al publicador correspondiente
+        self.img_out.ang = self.control_a
+        self.img_out.dist = self.control_d
+        self.control_vel_pub.publish(self.img_out)
+        cv2.drawContours(roi, self.contours, 0, (0, 255, 0), 3)
+        h, w, _ = roi.shape
+        cv2.line(roi, (int(w / 2), 250), (int(w / 2), 280), (255, 0, 0), 3)
+        key = cv2.waitKey(1) & 0xFF
+        print_info = "%3f | %3f" % (self.error_a, self.error_d)
+        rospy.loginfo(print_info)
+        cv2.imshow("o", roi)
+        return key
 
     def run(self):
         while not rospy.is_shutdown():
