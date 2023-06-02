@@ -104,8 +104,8 @@ class ImageControl:
         roi_lower= 0.99
         frame_width=640
         frame_height = frame.shape[0]
-
-        roi_size = [int(roi_upper * frame_height), int(roi_lower * frame_height), 0, frame_width - 1]
+        n=500
+        roi_size = [int(roi_upper * frame_height), int(roi_lower * frame_height), n, frame_width - 1+n]
         print(roi_size)
         roi = resized[roi_size[0]:roi_size[1], roi_size[2]:roi_size[3]]
         #cv2.imshow("ROI", roi)
@@ -116,23 +116,25 @@ class ImageControl:
     def process_frame(self, roi):
         roi1=self.create_roi(roi)
         self.error_a, self.error_d = self.calculate_error(roi1)
-
+        self.error_a=self.error_d
+        
         # Calculo de los errores
         self.current_time = rospy.get_time()
         dt = (self.current_time - self.previous_time)
         self.previous_time = self.current_time
 
         # Termino proporcional (P)
-        control_a_p = self.kp_a * self.error_d
+        control_a_p = self.kp_a * self.error_a
         control_d_p = self.kp_d * self.error_d
 
         # Termino integral (I)
-        self.error_sum_a += self.error_d * dt
+        self.error_sum_a += self.error_a * dt
         self.error_sum_d += self.error_d * dt
-        control_a_i = self.ki_d * self.error_sum_d
+        control_a_i = self.ki_d * self.error_sum_a
         control_d_i = self.ki_d * self.error_sum_d
 
         # Termino derivativo (D)
+        #a
         error_derivativo_a = (self.error_d - self.prev_error_d) / dt
         control_a_d = self.kd_a * error_derivativo_a
 
@@ -141,7 +143,7 @@ class ImageControl:
         self.control_d = control_d_p + control_d_i
 
         # Actualizar variables para la siguiente iteracion
-        self.prev_error_a = self.error_a
+        self.prev_error_a = self.error_d
         self.prev_error_d = self.error_d
 
         # Envio de las velocidades al publicador correspondiente
